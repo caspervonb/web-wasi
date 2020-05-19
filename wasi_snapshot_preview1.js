@@ -201,12 +201,33 @@ const  PREOPENTYPE_DIR                           =  0;
 
 export function args_get(argv_ptr, argv_buf_ptr)
 {
-	return ERRNO_NOSYS;
+	const text = new TextEncoder();
+	const heap = new Uint8Array(memory.buffer);
+	const view = new DataView(memory.buffer);
+
+	for (const arg of args) {
+		view.setUint32(argv_ptr, argv_buf_ptr, true);
+		argv_ptr += 4;
+
+		const data = text.encode(`${arg}\0`);
+		heap.set(data, argv_buf_ptr);
+		argv_buf_ptr += data.length;
+	}
+
+	return ERRNO_SUCCESS;
 }
 
 export function args_sizes_get(argc_ptr, argv_buf_size_ptr)
 {
-	return ERRNO_NOSYS;
+	const text = new TextEncoder();
+	const view = new DataView(memory.buffer);
+
+	view.setUint32(argc_ptr, args.length, true);
+	view.setUint32(argv_buf_size_ptr, args.reduce((acc, arg) => {
+		acc + text.encode(`${arg}0`).length;
+	}, 0), true);
+
+	return ERRNO_SUCCESS;
 }
 
 export function environ_get(environ_ptr, environ_buf_ptr)
