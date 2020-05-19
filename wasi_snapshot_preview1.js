@@ -221,12 +221,55 @@ export function environ_sizes_get(environc_ptr, environ_buf_size_ptr)
 
 export function clock_res_get(id, resolution_ptr)
 {
-	return ERRNO_NOSYS;
+	const view = new DataView(memory.buffer);
+
+	switch (id) {
+		case CLOCKID_REALTIME:
+			view.setBigUint64(resolution_ptr, BigInt(1e6), true);
+			break;
+
+		case CLOCKID_MONOTONIC:
+		case CLOCKID_PROCESS_CPUTIME_ID:
+		case CLOCKID_THREAD_CPUTIME_ID:
+			view.setBigUint64(resolution_ptr, BigInt(1e3), true);
+			break;
+
+		default:
+			return ERRNO_INVAL;
+	}
+
+	return ERRNO_SUCCESS;
 }
 
 export function clock_time_get(id, precision, time_ptr)
 {
-	return ERRNO_NOSYS;
+	const view = new DataView(memory.buffer);
+
+	switch (id) {
+		case CLOCKID_REALTIME: {
+			const t = Date.now();
+			const time = BigInt(t) * BigInt(1e6);
+			view.setBigUint64(time_ptr, time, true);
+			break;
+		}
+
+		case CLOCKID_MONOTONIC:
+		case CLOCKID_PROCESS_CPUTIME_ID:
+		case CLOCKID_THREAD_CPUTIME_ID: {
+			const t = performance.now();
+			const s = Math.trunc(t);
+			const ms = Math.floor((t - s) * 1e3);
+			const time = (BigInt(s) * BigInt(1e9)) + (BigInt(ms) * BigInt(1e6));
+
+			view.setBigUint64(time_ptr, time, true);
+			break;
+		}
+
+		default:
+			return ERRNO_INVAL;
+	}
+
+	return ERRNO_SUCCESS;
 }
 
 export function fd_advise(fd, offset, len, advice)
