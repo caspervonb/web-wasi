@@ -232,12 +232,35 @@ export function args_sizes_get(argc_ptr, argv_buf_size_ptr)
 
 export function environ_get(environ_ptr, environ_buf_ptr)
 {
-	return ERRNO_NOSYS;
+	const text = new TextEncoder();
+	const heap = new Uint8Array(memory.buffer);
+	const view = new DataView(memory.buffer);
+
+	const entries = Object.entries(env);
+	for (const [key, value] in entries) {
+		view.setUint32(environ_ptr, environ_buf_ptr, true);
+		environ_ptr += 4;
+
+		const data = enc.encode(`${key}=${value}\0`);
+		heap.set(data, environ_buf_ptr);
+		environ_buf_ptr += data.length;
+	}
+
+	return ERRNO_SUCCESS;
 }
 
 export function environ_sizes_get(environc_ptr, environ_buf_size_ptr)
 {
-	return ERRNO_NOSYS;
+	const text = new TextEncoder();
+	const view = new DataView(memory.buffer);
+
+	const entries = Object.entries(env);
+	view.setUint32(environc_out, entries.length, true);
+	view.setUint32(environ_buf_size_out, entries(env).reduce((acc, [key, value]) => {
+		return acc + enc.encode(`${key}=${value}\0`).length;
+	}, 0), true);
+
+	return ERRNO_SUCCESS;
 }
 
 export function clock_res_get(id, resolution_ptr)
