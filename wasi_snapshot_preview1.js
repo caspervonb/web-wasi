@@ -449,7 +449,10 @@ export function sched_yield()
 
 export function random_get(buf_ptr, buf_len)
 {
-	return ERRNO_NOSYS;
+	const data = new Uint8Array(memory.buffer, buf_ptr, buf_len);
+	crypto.getRandomValues(data);
+
+	return ERRNO_SUCCESS;
 }
 
 export function sock_recv(fd, ri_data_ptr, ri_data_len, ri_flags, ro_datalen_ptr, ro_flags_ptr)
